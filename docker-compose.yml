@@ -8,6 +8,10 @@ services:
       DOCKER_HOST_ADDR: host.docker.internal
       ACTUAL_HOST_WORKSPACE_PATH: ${LEMON_WORKSPACE_PATH:-${WORKSPACE_BASE:-${PWD}/workspace}}
       LEMON_AUTH_TOKEN: ${LEMON_AUTH_TOKEN:-}
+      # make run starts the backend on PORT and the Vite frontend on VITE_PORT.
+      PORT: ${LEMON_BACKEND_PORT:-3000}
+      VITE_PORT: 5005
+      VITE_SERVICE_URL: http://127.0.0.1:${LEMON_BACKEND_PORT:-3000}
     ports:
       - "${LEMON_PORT:-5005}:5005"
     extra_hosts:

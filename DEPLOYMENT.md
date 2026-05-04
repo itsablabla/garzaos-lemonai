@@ -7,7 +7,8 @@ This repository ships a Docker Compose deployment intended for local or small pr
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `LEMON_IMAGE_TAG` | `v0.0.36` | App image tag used by `docker-compose.yml`. Pin this for reproducible deploys and rollbacks. |
-| `LEMON_PORT` | `5005` | Host port mapped to the LemonAI app. |
+| `LEMON_PORT` | `5005` | Host port mapped to the LemonAI frontend service. |
+| `LEMON_BACKEND_PORT` | `3000` | Internal backend port used by `bin/www` and the Vite `/api` proxy. |
 | `LEMON_WORKSPACE_PATH` | `${PWD}/workspace` | Host path mounted at `/app/workspace`. |
 | `LEMON_DATA_PATH` | `${PWD}/data` | Host path mounted at `/app/data`. |
 | `LEMON_AUTH_TOKEN` | unset | Optional bearer token for API requests. If unset, local/offline mode uses user id `1` without auth. |
@@ -41,7 +42,7 @@ Use a `.env` file next to `docker-compose.yml` for non-secret operational settin
 
 ## Health checks and logs
 
-The Compose service has a container healthcheck for `http://127.0.0.1:5005/api/version`. Docker json-file logs rotate at `10m` with `5` files.
+The Compose service exposes the Vite frontend on internal port `5005`; the backend listens on internal `LEMON_BACKEND_PORT`/`PORT` (`3000` by default), and Vite proxies `/api` to it through `VITE_SERVICE_URL`. The container healthcheck intentionally checks the exposed frontend path `http://127.0.0.1:5005/api/version` so it verifies both the frontend listener and backend proxy. Docker json-file logs rotate at `10m` with `5` files.
 
 Useful commands:
 
