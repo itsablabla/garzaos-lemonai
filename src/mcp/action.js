@@ -38,7 +38,65 @@ const normalizeTool = (server, tool = {}) => {
   };
 }
 
+const prepareMetaMcpHeaders = (server = {}) => {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(server.headers || {})
+  };
+  const hasApiKeyHeader = Object.keys(headers).some((key) => key.toLowerCase() === 'x-api-key');
+  if (server.api_key && !hasApiKeyHeader) {
+    headers['X-API-Key'] = server.api_key;
+  }
+  return headers;
+}
+
+const parseMetaMcpContent = (payload = {}) => {
+  const text = payload?.content?.find?.((item) => item?.type === 'text')?.text;
+  if (!text) {
+    return payload;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    return payload;
+  }
+}
+
+const listMetaMcpRouterTools = async (server = {}) => {
+  const match = String(server.url || '').match(/\/metamcp\/([^/]+)\/router\/mcp\/?$/);
+  if (!match) {
+    return null;
+  }
+
+  const brand = match[1];
+  const apiUrl = String(server.url).replace(/\/router\/mcp\/?$/, '/router/api/get_brand_tools');
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: prepareMetaMcpHeaders(server),
+    body: JSON.stringify({ brand })
+  });
+
+  if (!response.ok) {
+    throw new Error(`MetaMCP router API returned ${response.status}`);
+  }
+
+  const payload = parseMetaMcpContent(await response.json());
+  return (payload.tools || []).map((tool) => normalizeTool(server, {
+    ...tool,
+    name: tool.shortName || tool.name,
+    id: `${server.name}__${tool.shortName || tool.name}`,
+    serverId: server.id,
+    serverName: server.name
+  }));
+}
+
 const listToolsForServer = async (server) => {
+  const routerTools = await listMetaMcpRouterTools(server);
+  if (routerTools) {
+    return routerTools;
+  }
+
   const tools = typeof mcp_client.listTools === 'function'
     ? await mcp_client.listTools(server)
     : await mcp_client.listToolsImpl(server);
@@ -140,4 +198,6 @@ const mcpToolActionCall = async (params = {}, context = {}) => {
 module.exports = mcpToolActionCall
 module.exports.isListToolsRequest = isListToolsRequest
 module.exports.listSelectedTools = listSelectedTools
+module.exports.listMetaMcpRouterTools = listMetaMcpRouterTools
+module.exports.prepareMetaMcpHeaders = prepareMetaMcpHeaders
 // run();

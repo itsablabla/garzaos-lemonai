@@ -6,6 +6,7 @@ const { Op } = require('sequelize');
 const McpServer = require('@src/models/McpServer');
 const mcpClient = require('@src/mcp/client');
 const mcpToolActionCall = require('@src/mcp/action');
+const { listMetaMcpRouterTools } = require('@src/mcp/action');
 
 describe('MCP tool action', () => {
   afterEach(() => {
@@ -171,6 +172,50 @@ describe('MCP tool action', () => {
         is_default: true
       }
     });
+  });
+
+  it('lists tools from MetaMCP router API endpoints without streamable discovery', async () => {
+    const fetchStub = sinon.stub(global, 'fetch').resolves({
+      ok: true,
+      json: async () => ({
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              tools: [
+                {
+                  name: 'tavily__tavily_search',
+                  shortName: 'tavily_search',
+                  description: 'Search the web',
+                  inputSchema: { type: 'object' }
+                }
+              ]
+            })
+          }
+        ]
+      })
+    });
+
+    const result = await listMetaMcpRouterTools({
+      id: 15,
+      name: 'metamcp-tavily',
+      url: 'https://metamcp.garza.online/metamcp/tavily/router/mcp',
+      api_key: 'secret'
+    });
+
+    expect(result).to.deep.equal([
+      {
+        serverId: 15,
+        serverName: 'metamcp-tavily',
+        name: 'tavily_search',
+        id: 'metamcp-tavily__tavily_search',
+        toolId: 'metamcp-tavily__tavily_search',
+        description: 'Search the web',
+        inputSchema: { type: 'object' }
+      }
+    ]);
+    expect(fetchStub.firstCall.args[0]).to.equal('https://metamcp.garza.online/metamcp/tavily/router/api/get_brand_tools');
+    expect(fetchStub.firstCall.args[1].headers['X-API-Key']).to.equal('secret');
   });
 
   it('throws a clear error when a server-scoped tool cannot resolve its server', async () => {
