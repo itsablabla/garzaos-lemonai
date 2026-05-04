@@ -45,13 +45,31 @@ const listToolsForServer = async (server) => {
   return (tools || []).map((tool) => normalizeTool(server, tool));
 }
 
+const withTimeout = (promise, ms, message) => {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), ms);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
+}
+
+const listToolsForServerWithTimeout = async (server) => {
+  const timeoutMs = Math.max(1000, Number(server?.timeout || 10) * 1000);
+  return withTimeout(
+    listToolsForServer(server),
+    timeoutMs,
+    `Timed out after ${timeoutMs / 1000}s while listing MCP tools`
+  );
+}
+
 const listSelectedTools = async (context = {}) => {
   const servers = await resolveServers(context);
   if (!Array.isArray(servers) || servers.length === 0) {
     return JSON.stringify({ tools: [], message: 'No MCP servers selected or active' });
   }
 
-  const results = await Promise.allSettled(servers.map((server) => listToolsForServer(server)));
+  const results = await Promise.allSettled(servers.map((server) => listToolsForServerWithTimeout(server)));
   const tools = [];
   const errors = [];
 
