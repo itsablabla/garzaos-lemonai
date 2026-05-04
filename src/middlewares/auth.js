@@ -6,13 +6,38 @@
  */
 
 const excludePatterns = [
-  '/api/agent_store/last/'
+  '/api/agent_store/last/',
+  '/api/version'
 ];
+
+const isExcludedPath = (path) => excludePatterns.some((pattern) => path.startsWith(pattern));
+
+const getBearerToken = (authorization = '') => {
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1] : '';
+};
 
 module.exports = () => {
   return async (ctx, next) => {
+    const authToken = process.env.LEMON_AUTH_TOKEN;
 
-    // 直接设置默认用户 ID 为 1，不进行 Token 校验
+    if (!authToken || isExcludedPath(ctx.path) || ctx.method === 'OPTIONS') {
+      ctx.state.user = { id: 1 };
+      await next();
+      return;
+    }
+
+    const bearerToken = getBearerToken(ctx.get('authorization'));
+    if (bearerToken !== authToken) {
+      ctx.status = 401;
+      ctx.body = {
+        data: {},
+        code: 1,
+        msg: 'Unauthorized'
+      };
+      return;
+    }
+
     ctx.state.user = { id: 1 };
     await next();
   };
