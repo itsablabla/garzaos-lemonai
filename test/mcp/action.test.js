@@ -51,6 +51,50 @@ describe('MCP tool action', () => {
     ]);
   });
 
+  it('returns healthy server tools and error metadata when one server fails to list tools', async () => {
+    const healthyServer = { id: 7, name: 'healthy-server', activate: true };
+    const failingServer = { id: 8, name: 'failing-server', activate: true };
+    sinon.stub(McpServer, 'findAll').resolves([healthyServer, failingServer]);
+    sinon.stub(mcpClient, 'listTools').callsFake(async (server) => {
+      if (server.name === 'failing-server') {
+        throw new Error('connection refused');
+      }
+
+      return [
+        {
+          name: 'search',
+          id: 'healthy-server__search',
+          description: 'Search records',
+          inputSchema: { type: 'object' },
+          serverId: 7,
+          serverName: 'healthy-server'
+        }
+      ];
+    });
+
+    const result = await mcpToolActionCall({ name: 'list_tools', arguments: {} }, { mcp_server_ids: [7, 8] });
+    const payload = JSON.parse(result);
+
+    expect(payload.tools).to.deep.equal([
+      {
+        serverId: 7,
+        serverName: 'healthy-server',
+        name: 'search',
+        id: 'healthy-server__search',
+        toolId: 'healthy-server__search',
+        description: 'Search records',
+        inputSchema: { type: 'object' }
+      }
+    ]);
+    expect(payload.errors).to.deep.equal([
+      {
+        serverId: 8,
+        serverName: 'failing-server',
+        message: 'connection refused'
+      }
+    ]);
+  });
+
   it('returns a clear empty tools message when no MCP servers are active', async () => {
     const result = await mcpToolActionCall({ name: 'listTools', arguments: {} }, { mcp_server_ids: [] });
     const payload = JSON.parse(result);

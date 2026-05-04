@@ -38,20 +38,43 @@ const normalizeTool = (server, tool = {}) => {
   };
 }
 
+const listToolsForServer = async (server) => {
+  const tools = typeof mcp_client.listTools === 'function'
+    ? await mcp_client.listTools(server)
+    : await mcp_client.listToolsImpl(server);
+  return (tools || []).map((tool) => normalizeTool(server, tool));
+}
+
 const listSelectedTools = async (context = {}) => {
   const servers = await resolveServers(context);
   if (!Array.isArray(servers) || servers.length === 0) {
     return JSON.stringify({ tools: [], message: 'No MCP servers selected or active' });
   }
 
-  const toolsByServer = await Promise.all(servers.map(async (server) => {
-    const tools = typeof mcp_client.listTools === 'function'
-      ? await mcp_client.listTools(server)
-      : await mcp_client.listToolsImpl(server);
-    return (tools || []).map((tool) => normalizeTool(server, tool));
-  }));
+  const results = await Promise.allSettled(servers.map((server) => listToolsForServer(server)));
+  const tools = [];
+  const errors = [];
 
-  return JSON.stringify({ tools: toolsByServer.flat() });
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      tools.push(...result.value);
+      return;
+    }
+
+    const server = servers[index];
+    errors.push({
+      serverId: server?.id,
+      serverName: server?.name,
+      message: result.reason?.message || String(result.reason)
+    });
+  });
+
+  const payload = { tools };
+  if (errors.length > 0) {
+    payload.errors = errors;
+  }
+
+  return JSON.stringify(payload);
 }
 
 const parseServerScopedToolName = (name = '') => {
