@@ -2,17 +2,17 @@ const mcpToolCall = require('./action');
 
 const mcp_tool = {
   name: "mcp_tool",
-  description: "mcp_tool: provides a set of methods to accomplish specific task",
+  description: "mcp_tool: calls MCP server tools. Use name \"tools/list\" with empty arguments to list all available MCP tools, or use \"serverName__toolName\" to call a specific MCP tool.",
   params: {
     type: "object",
     properties: {
       name: {
         type: "string",
-        description: "tool name"
+        description: "MCP tool name. Use \"tools/list\" to list available tools, or \"serverName__toolName\" for a server-scoped tool."
       },
       arguments: {
         type: "object",
-        description: "tool arguments"
+        description: "MCP tool arguments. Use an empty object for \"tools/list\"."
       }
     }
   },

@@ -12,6 +12,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const { resolveActions } = require("@src/xml/index");
 
 const { finish_action, retryHandle } = require("./code-act.common");
+const { resolveListMcpToolsRequirement } = require("@src/mcp/list-tools-intent");
 
 const { checkActionToBeContinue, completeMessagesContent } = require("./message");
 
@@ -40,6 +41,11 @@ const completeCodeAct = async (task = {}, context = {}) => {
   context.memory = memory;
   memory._loadMemory();
   // @ts-ignore
+
+  const mcpToolsResponse = await resolveListMcpToolsRequirement(requirement, context);
+  if (mcpToolsResponse) {
+    return finish_action({ params: { message: mcpToolsResponse } }, context, task.id);
+  }
 
   let retryCount = 0;
   let totalRetryAttempts = 0; // add：total retries times counter

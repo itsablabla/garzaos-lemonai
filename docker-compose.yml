@@ -1,20 +1,37 @@
 
 services:
   lemon:
-    image: hexdolemonai/lemon:latest
+    image: hexdolemonai/lemon:${LEMON_IMAGE_TAG:-v0.0.36}
     container_name: lemon-app
+    restart: unless-stopped
     environment:
-      - DOCKER_HOST_ADDR=host.docker.internal
-      - ACTUAL_HOST_WORKSPACE_PATH=${WORKSPACE_BASE:-$PWD/workspace}
+      DOCKER_HOST_ADDR: host.docker.internal
+      ACTUAL_HOST_WORKSPACE_PATH: ${LEMON_WORKSPACE_PATH:-${WORKSPACE_BASE:-${PWD}/workspace}}
+      LEMON_AUTH_TOKEN: ${LEMON_AUTH_TOKEN:-}
+      # make run starts the backend on PORT and the Vite frontend on VITE_PORT.
+      PORT: ${LEMON_BACKEND_PORT:-3000}
+      VITE_PORT: 5005
+      VITE_SERVICE_URL: http://127.0.0.1:${LEMON_BACKEND_PORT:-3000}
     ports:
-      - "5005:5005"
+      - "${LEMON_PORT:-5005}:5005"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ~/.cache:/.cache
-      - ${WORKSPACE_BASE:-$PWD/workspace}:/app/workspace
-      - ${WORKSPACE_BASE:-$PWD/data}:/app/data
+      - ${LEMON_WORKSPACE_PATH:-${WORKSPACE_BASE:-${PWD}/workspace}}:/app/workspace
+      - ${LEMON_DATA_PATH:-${WORKSPACE_BASE:-${PWD}/data}}:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:5005/api/version >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     stdin_open: true
     tty: true
     command: make run

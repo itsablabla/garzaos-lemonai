@@ -21,9 +21,24 @@ jobs:
         with:
           filters: |
             runtime_sandbox:
-              - 'containers/runtime/VERSION'  # 只监听 VERSION 文件
+              - 'containers/runtime/**'
+              - 'src/runtime/**'
+              - 'browser_server/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'pnpm-lock.yaml'
             app:
-              - 'containers/app/VERSION'      # 只监听 VERSION 文件
+              - 'containers/app/**'
+              - 'src/**'
+              - 'bin/**'
+              - 'types/**'
+              - 'public/**'
+              - 'frontend/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'pnpm-lock.yaml'
+              - 'Makefile'
+              - 'docker-compose.yml'
 
   build-and-push-runtime-sandbox:
     needs: check-changes

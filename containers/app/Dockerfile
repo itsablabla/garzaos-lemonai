@@ -21,19 +21,15 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # --- Layer 2: Package Manager Manifests (Infrequent Change) ---
-# Copy package.json and Makefile. If you have a lock file (package-lock.json or yarn.lock),
-# copy it here as well. This is crucial for caching dependency installation.
-COPY ./package.json ./
-RUN npm install --production
+COPY ./package*.json ./
+RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --production; fi
 
-# COPY ./package-lock.json ./  # Or yarn.lock - uncomment and use if you have one!
 COPY ./Makefile ./
 
 # --- Layer 3: Install Project Dependencies (Changes when manifests change) ---
-# This runs 'npm install' or similar based on your Makefile's 'init' target.
-# This layer will be cached as long as package.json, lock file, and Makefile haven't changed.
+COPY ./frontend/package*.json ./frontend/
+RUN cd frontend && if [ -f package-lock.json ]; then npm ci; else npm install; fi
 COPY ./frontend ./frontend
-RUN cd frontend && npm install
 
 # --- Layer 4: Playwright Installation (Changes if Playwright version in package.json changes or make init changes) ---
 # Installs Playwright browsers and their OS dependencies.

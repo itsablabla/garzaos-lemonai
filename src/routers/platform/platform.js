@@ -4,6 +4,21 @@ const Platform = require("@src/models/Platform");
 const Model = require("@src/models/Model");
 const checkLlmApiAvailability = require("@src/utils/check_llm_api_availability");
 
+const sanitizePlatform = (platform) => {
+  if (!platform) {
+    return platform;
+  }
+
+  const data = typeof platform.toJSON === "function" ? platform.toJSON() : { ...platform };
+  return {
+    ...data,
+    api_key_set: Boolean(data.api_key),
+    api_key: "",
+  };
+};
+
+const sanitizePlatforms = (platforms) => platforms.map(sanitizePlatform);
+
 // Create a new platform
 /**
  * @swagger
@@ -58,7 +73,7 @@ router.post("/", async ({ state, request, response }) => {
     source_type: source_type,
   });
 
-  return response.success(platform);
+  return response.success(sanitizePlatform(platform));
 });
 
 // Get platform list
@@ -89,7 +104,7 @@ router.post("/", async ({ state, request, response }) => {
  */
 router.get("/", async ({ response }) => {
   const platforms = await Platform.findAll({ order: [['create_at', 'DESC']] });
-  return response.success(platforms);
+  return response.success(sanitizePlatforms(platforms));
 });
 
 // update platform
@@ -143,14 +158,19 @@ router.put("/:platform_id", async ({ state, params, request, response }) => {
     return response.fail({}, "Platform does not exist");
   }
 
-  await platform.update({
+  const updateData = {
     name: name,
-    api_key: api_key,
     api_url: api_url,
     is_enabled: is_enabled
-  });
+  };
 
-  return response.success(platform);
+  if (typeof api_key === "string" && api_key.trim() !== "") {
+    updateData.api_key = api_key;
+  }
+
+  await platform.update(updateData);
+
+  return response.success(sanitizePlatform(platform));
 });
 
 // delete platform

@@ -4,6 +4,7 @@ const auto_reply = require("@src/agent/auto-reply/index")
 const summary = require("@src/agent/summary/index")
 
 const completeCodeAct = require("@src/agent/code-act/index");
+const { resolveListMcpToolsRequirement } = require("@src/mcp/list-tools-intent");
 
 const TaskManager = require('./TaskManager'); // assume task manager path
 const Message = require('@src/utils/message.js');
@@ -181,6 +182,19 @@ class AgenticAgent {
     }
 
     try {
+      const mcpToolsResponse = await resolveListMcpToolsRequirement(goal, this.context);
+      if (mcpToolsResponse) {
+        const uuid = uuidv4();
+        await this._publishMessage({ uuid, action_type: 'finish_summery', status: 'success', content: mcpToolsResponse, json: [] });
+        await Conversation.update({ status: 'done' }, { where: { conversation_id: this.context.conversation_id } });
+        return {
+          goal: this.goal,
+          status: 'success',
+          summary: mcpToolsResponse,
+          tasks: [],
+          logs: this.logs
+        };
+      }
 
       if (this.is_stop) return;
 
