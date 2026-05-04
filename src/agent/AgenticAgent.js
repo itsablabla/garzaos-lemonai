@@ -185,7 +185,7 @@ class AgenticAgent {
       const mcpToolsResponse = await resolveListMcpToolsRequirement(goal, this.context);
       if (mcpToolsResponse) {
         const uuid = uuidv4();
-        await this._publishMessage({ uuid, action_type: 'finish', status: 'success', content: mcpToolsResponse });
+        await this._publishMessage({ uuid, action_type: 'finish_summery', status: 'success', content: mcpToolsResponse, json: [] });
         await Conversation.update({ status: 'done' }, { where: { conversation_id: this.context.conversation_id } });
         return {
           goal: this.goal,
