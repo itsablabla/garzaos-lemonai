@@ -1,11 +1,20 @@
 const getBinaryPath = require('./binary');
 
+const prepareTransportHeaders = (server = {}) => {
+  const headers = { ...(server.headers || {}) };
+  const hasApiKeyHeader = Object.keys(headers).some((key) => key.toLowerCase() === 'x-api-key');
+  if (server.api_key && !hasApiKeyHeader) {
+    headers['X-API-Key'] = server.api_key;
+  }
+  return headers;
+};
+
 const initStreamTransport = async (server = {}) => {
   const sse_url = server.url;
   if (server.type === 'streamableHttp') {
     const { StreamableHTTPClientTransport } = await import('@modelcontextprotocol/sdk/client/streamableHttp.js')
     const options = {
-      requestInit: { headers: server.headers || {} },
+      requestInit: { headers: prepareTransportHeaders(server) },
     };
     return new StreamableHTTPClientTransport(new URL(sse_url), options);
   } else if (server.type === 'sse') {
@@ -72,5 +81,6 @@ const initTransport = async (server = {}) => {
 };
 
 module.exports = exports = {
-  initTransport
+  initTransport,
+  prepareTransportHeaders
 }
