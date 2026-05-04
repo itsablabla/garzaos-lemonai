@@ -3,7 +3,7 @@ const getBinaryPath = require('./binary');
 const initStreamTransport = async (server = {}) => {
   const sse_url = server.url;
   if (server.type === 'streamableHttp') {
-    const { StreamableHTTPClientTransport } = await import('@modelcontextprotocol/sdk/client/streamableHttp')
+    const { StreamableHTTPClientTransport } = await import('@modelcontextprotocol/sdk/client/streamableHttp.js')
     const options = {
       requestInit: { headers: server.headers || {} },
     };
