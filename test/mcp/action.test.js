@@ -2,6 +2,7 @@ require('module-alias/register');
 const { expect } = require('chai');
 const sinon = require('sinon');
 
+const { Op } = require('sequelize');
 const McpServer = require('@src/models/McpServer');
 const mcpClient = require('@src/mcp/client');
 const mcpToolActionCall = require('@src/mcp/action');
@@ -13,7 +14,7 @@ describe('MCP tool action', () => {
 
   it('lists selected MCP tools for generic list-tools requests', async () => {
     const server = { id: 7, name: 'demo-server', activate: true };
-    sinon.stub(McpServer, 'findAll').resolves([server]);
+    const findAllStub = sinon.stub(McpServer, 'findAll').resolves([server]);
     sinon.stub(mcpClient, 'listTools').resolves([
       {
         name: 'search',
@@ -47,6 +48,64 @@ describe('MCP tool action', () => {
             query: { type: 'string' }
           }
         }
+      }
+    ]);
+    expect(findAllStub.calledOnce).to.equal(true);
+    expect(findAllStub.firstCall.args[0]).to.deep.equal({
+      where: {
+        id: { [Op.in]: [7] },
+        activate: true
+      }
+    });
+  });
+
+  it('normalizes selected MCP server ids sent as strings', async () => {
+    const server = { id: 7, name: 'demo-server', activate: true };
+    const findAllStub = sinon.stub(McpServer, 'findAll').resolves([server]);
+    sinon.stub(mcpClient, 'listTools').resolves([]);
+
+    await mcpToolActionCall({ name: 'tools/list', arguments: {} }, { mcp_server_ids: ['7'] });
+
+    expect(findAllStub.calledOnce).to.equal(true);
+    expect(findAllStub.firstCall.args[0]).to.deep.equal({
+      where: {
+        id: { [Op.in]: [7] },
+        activate: true
+      }
+    });
+  });
+
+  it('uses active default MCP servers for a user when no explicit ids are selected', async () => {
+    const server = { id: 11, user_id: 42, name: 'default-server', activate: true, is_default: true };
+    const findAllStub = sinon.stub(McpServer, 'findAll').resolves([server]);
+    sinon.stub(mcpClient, 'listTools').resolves([
+      {
+        name: 'lookup',
+        description: 'Lookup records',
+        inputSchema: { type: 'object' }
+      }
+    ]);
+
+    const result = await mcpToolActionCall({ name: 'list_tools', arguments: {} }, { user_id: 42, mcp_server_ids: [] });
+    const payload = JSON.parse(result);
+
+    expect(findAllStub.calledOnce).to.equal(true);
+    expect(findAllStub.firstCall.args[0]).to.deep.equal({
+      where: {
+        activate: true,
+        is_default: true,
+        user_id: 42
+      }
+    });
+    expect(payload.tools).to.deep.equal([
+      {
+        serverId: 11,
+        serverName: 'default-server',
+        name: 'lookup',
+        id: 'default-server__lookup',
+        toolId: 'default-server__lookup',
+        description: 'Lookup records',
+        inputSchema: { type: 'object' }
       }
     ]);
   });
@@ -96,12 +155,21 @@ describe('MCP tool action', () => {
   });
 
   it('returns a clear empty tools message when no MCP servers are active', async () => {
+    const findAllStub = sinon.stub(McpServer, 'findAll').resolves([]);
+
     const result = await mcpToolActionCall({ name: 'listTools', arguments: {} }, { mcp_server_ids: [] });
     const payload = JSON.parse(result);
 
     expect(payload).to.deep.equal({
       tools: [],
       message: 'No MCP servers selected or active'
+    });
+    expect(findAllStub.calledOnce).to.equal(true);
+    expect(findAllStub.firstCall.args[0]).to.deep.equal({
+      where: {
+        activate: true,
+        is_default: true
+      }
     });
   });
 
