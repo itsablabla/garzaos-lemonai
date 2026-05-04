@@ -12,6 +12,7 @@ const sanitizePlatform = (platform) => {
   const data = typeof platform.toJSON === "function" ? platform.toJSON() : { ...platform };
   return {
     ...data,
+    api_key_set: Boolean(data.api_key),
     api_key: "",
   };
 };
@@ -157,12 +158,17 @@ router.put("/:platform_id", async ({ state, params, request, response }) => {
     return response.fail({}, "Platform does not exist");
   }
 
-  await platform.update({
+  const updateData = {
     name: name,
-    api_key: api_key,
     api_url: api_url,
     is_enabled: is_enabled
-  });
+  };
+
+  if (typeof api_key === "string" && api_key.trim() !== "") {
+    updateData.api_key = api_key;
+  }
+
+  await platform.update(updateData);
 
   return response.success(sanitizePlatform(platform));
 });
