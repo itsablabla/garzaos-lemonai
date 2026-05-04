@@ -8,7 +8,12 @@ const isListMcpToolsRequirement = (requirement = '') => {
     return false;
   }
 
-  return /\b(list|show|display|include|available|what|which|enumerate)\b/.test(normalized);
+  const hasMcpTools = /\bmcp\b.*\btools?\b/.test(normalized) || /\btools?\b.*\bmcp\b/.test(normalized);
+  const hasListCue = /\b(list|show|display|enumerate)\b/.test(normalized);
+  const hasQuestionCue = /\b(what|which)\b/.test(normalized);
+  const hasInventoryCue = /\b(available|inventory|catalog)\b/.test(normalized);
+
+  return hasMcpTools && (hasListCue || (hasQuestionCue && hasInventoryCue));
 }
 
 const safeJsonParse = (value) => {

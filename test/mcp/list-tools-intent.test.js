@@ -18,6 +18,12 @@ describe('MCP list-tools intent', () => {
   it('detects list-MCP-tools wording without matching unrelated MCP prompts', () => {
     expect(isListMcpToolsRequirement('Please list all of your available MCP tools. Include each tool name and a brief description of what it does.')).to.equal(true);
     expect(isListMcpToolsRequirement('Show MCP tools')).to.equal(true);
+    expect(isListMcpToolsRequirement('Display the MCP tool catalog')).to.equal(true);
+    expect(isListMcpToolsRequirement('Which available MCP tools can you access?')).to.equal(true);
+    expect(isListMcpToolsRequirement('Use the MCP tools to search the web')).to.equal(false);
+    expect(isListMcpToolsRequirement('Configure the available MCP tool for Slack')).to.equal(false);
+    expect(isListMcpToolsRequirement('Include MCP tools in the workflow')).to.equal(false);
+    expect(isListMcpToolsRequirement('Call the MCP tool named foo')).to.equal(false);
     expect(isListMcpToolsRequirement('Use MCP to search the web')).to.equal(false);
     expect(isListMcpToolsRequirement('List available browser tools')).to.equal(false);
   });

@@ -181,21 +181,20 @@ class AgenticAgent {
       throw error
     }
 
-    const mcpToolsResponse = await resolveListMcpToolsRequirement(goal, this.context);
-    if (mcpToolsResponse) {
-      const uuid = uuidv4();
-      await this._publishMessage({ uuid, action_type: 'finish', status: 'success', content: mcpToolsResponse });
-      await Conversation.update({ status: 'done' }, { where: { conversation_id: this.context.conversation_id } });
-      return {
-        goal: this.goal,
-        status: 'success',
-        summary: mcpToolsResponse,
-        tasks: [],
-        logs: this.logs
-      };
-    }
-
     try {
+      const mcpToolsResponse = await resolveListMcpToolsRequirement(goal, this.context);
+      if (mcpToolsResponse) {
+        const uuid = uuidv4();
+        await this._publishMessage({ uuid, action_type: 'finish', status: 'success', content: mcpToolsResponse });
+        await Conversation.update({ status: 'done' }, { where: { conversation_id: this.context.conversation_id } });
+        return {
+          goal: this.goal,
+          status: 'success',
+          summary: mcpToolsResponse,
+          tasks: [],
+          logs: this.logs
+        };
+      }
 
       if (this.is_stop) return;
 
