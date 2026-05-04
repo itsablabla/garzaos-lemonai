@@ -18,21 +18,20 @@ Use these dedicated brand endpoints before falling back to aggregate `Default`:
 
 | Brand | Streamable HTTP URL |
 | --- | --- |
-| tavily | `https://metamcp.garzahive.com/metamcp/tavily/mcp` |
-| firecrawl | `https://metamcp.garzahive.com/metamcp/firecrawl/mcp` |
-| context7 | `https://metamcp.garzahive.com/metamcp/context7/mcp` |
-| onepass | `https://metamcp.garzahive.com/metamcp/onepass/mcp` |
-| e2b | `https://metamcp.garzahive.com/metamcp/e2b/mcp` |
-| mem0 | `https://metamcp.garzahive.com/metamcp/mem0/mcp` |
-| tailscale | `https://metamcp.garzahive.com/metamcp/tailscale/mcp` |
-| composio | `https://metamcp.garzahive.com/metamcp/composio/mcp` |
-| hyperbrowser | `https://metamcp.garzahive.com/metamcp/hyperbrowser/mcp` |
-| prompts-chat | `https://metamcp.garzahive.com/metamcp/prompts-chat/mcp` |
+| tavily | `https://metamcp.garza.online/metamcp/tavily/router/mcp` |
+| firecrawl | `https://metamcp.garza.online/metamcp/firecrawl/router/mcp` |
+| context7 | `https://metamcp.garza.online/metamcp/context7/router/mcp` |
+| onepass | `https://metamcp.garza.online/metamcp/onepass/router/mcp` |
+| e2b | `https://metamcp.garza.online/metamcp/e2b/router/mcp` |
+| mem0 | `https://metamcp.garza.online/metamcp/mem0/router/mcp` |
+| tailscale | `https://metamcp.garza.online/metamcp/tailscale/router/mcp` |
+| composio | `https://metamcp.garza.online/metamcp/composio/router/mcp` |
+| hyperbrowser | `https://metamcp.garza.online/metamcp/hyperbrowser/router/mcp` |
+| prompts-chat | `https://metamcp.garza.online/metamcp/prompts-chat/router/mcp` |
 
 OpenAPI equivalents follow the same namespace pattern:
 
-- OpenAPI base: `https://metamcp.garzahive.com/metamcp/<brand>/api`
-- OpenAPI schema: `https://metamcp.garzahive.com/metamcp/<brand>/api/openapi.json`
+- OpenAPI schema: `https://metamcp.garza.online/metamcp/<brand>/router/api/openapi.json`
 
 ## Request preparation workflow
 
@@ -77,10 +76,17 @@ Do not call downstream prefixed tools directly as router tool names. Discover wi
 - Prefer `mem0` for durable memory retrieval/storage when task context should persist.
 - Prefer `tailscale` for network/device lookup and tailnet operations.
 - Prefer `composio` for SaaS integrations.
-- Prefer `hyperbrowser` for browser automation and rendered-page extraction.
+- Do not route browser automation through MetaMCP `hyperbrowser` right now: catalog discovery may work, but execution can return `Unknown tool` for `hyperbrowser__*`. Use `firecrawl`/`tavily` when sufficient, or connect to Hyperbrowser MCP directly outside MetaMCP until router config is fixed.
 - Treat aggregate `Default` and broad routers as fallback only when brand-specific routing cannot satisfy the request.
 
-Known unreliable or easy-to-misuse tools: aggregate `Default`, direct downstream prefixed tool calls through a router, unauthenticated public endpoints, query-string API keys, and Streamable HTTP probes via plain `GET`.
+Known unreliable or environment-bound tools:
+
+- Aggregate `Default` can include slow/offline upstreams and may return retryable discovery timeouts.
+- `beeper-local` and `beeper-oakhost` currently expose zero/unknown tools or depend on local network tunnels.
+- `hyperbrowser` through MetaMCP is currently unreliable for execution despite catalog discovery.
+- `prompts-chat` may time out from the MetaMCP VM; try it first for substantial work, but do not let it block urgent tasks.
+- Endpoints that reference oakhost, `100.121.182.67`, local Beeper, or Proton Bridge services may fail from cloud-hosted agents unless the relevant Tailscale tunnel is reachable.
+- Direct downstream prefixed tool calls through a router, unauthenticated public endpoints, query-string API keys, and Streamable HTTP probes via plain `GET` are easy to misuse.
 
 ## Streamable HTTP notes
 
